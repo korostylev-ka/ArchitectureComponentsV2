@@ -10,6 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
+import ru.netology.nmedia.databinding.SeparatorDateItemBinding
+import ru.netology.nmedia.dto.DateSeparator
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.view.loadCircleCrop
 
@@ -19,19 +22,49 @@ interface OnInteractionListener {
     fun onRemove(post: Post) {}
     fun onShare(post: Post) {}
 }
+private val typeSepararor = 0
+private val typePost = 1
 
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
-) : PagingDataAdapter<Post, PostViewHolder>(PostDiffCallback()) {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
-        val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return PostViewHolder(binding, onInteractionListener)
+    //меняем PostViewHolder на базовый RecyclerView.ViewHolder и Post на FeedItem
+) : PagingDataAdapter<FeedItem, RecyclerView.ViewHolder>(FeedItemDiffCallback()) {
+    //получаем тип элемента
+    override fun getItemViewType(position: Int): Int {
+        return when (getItem(position)) {
+            //если тип рекламы, то ссылка на макет с рекламой
+            is DateSeparator -> typeSepararor
+            is Post -> typePost
+            null -> throw IllegalArgumentException("unknown item type")
+        }
     }
 
-    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val layoutInflater = LayoutInflater.from(parent.context)
+        return when (viewType) {
+            //если разделитель по дате поста, создадим его viewHolder
+            typeSepararor -> DateSeparatorViewHolder(
+                SeparatorDateItemBinding.inflate(layoutInflater, parent, false),
+                onInteractionListener
+            )
+            typePost -> PostViewHolder(
+                CardPostBinding.inflate(layoutInflater, parent, false),
+                onInteractionListener
+            )
+            else -> throw IllegalArgumentException("unknown view type: $viewType")
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         // FIXME: students will do in HW
         getItem(position)?.let {
-            holder.bind(it)
+            when (it) {
+                //если пост, приводим к view
+                // Holder'a поста
+                is Post -> (holder as? PostViewHolder)?.bind(it)
+                is DateSeparator -> (holder as? DateSeparatorViewHolder)?.bind(it)
+                null -> throw IllegalArgumentException("unknown item type")
+            }
         }
     }
 }
@@ -85,12 +118,39 @@ class PostViewHolder(
     }
 }
 
-class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
-    override fun areItemsTheSame(oldItem: Post, newItem: Post): Boolean {
+class DateSeparatorViewHolder(
+    private val binding: SeparatorDateItemBinding,
+    private val onInteractionListener: OnInteractionListener,
+) : RecyclerView.ViewHolder(binding.root) {
+    //заполняем разделитель
+    fun bind(dateSeparator: DateSeparator) {
+        binding.apply {
+                //в зависимости от ID будем присваивать значение текста
+                separatorDescription.text = when (dateSeparator.id.toInt()) {
+                    0 -> "Сегодня"
+                    1 -> "Вчера"
+                    2 -> "На прошлой неделе"
+                    else -> "Давно"
+                }
+            }
+        }
+    }
+
+
+class FeedItemDiffCallback : DiffUtil.ItemCallback<FeedItem>() {
+    override fun areItemsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
+        //проверяем ситуацию, когда у поста и разделителя может быть одинаковый id
+        if (oldItem::class != newItem::class) {
+            return false
+        }
+
         return oldItem.id == newItem.id
     }
 
-    override fun areContentsTheSame(oldItem: Post, newItem: Post): Boolean {
+    override fun areContentsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
+        if (oldItem is DateSeparator && newItem is DateSeparator) {
+            return oldItem.id == newItem.id
+        }
         return oldItem == newItem
     }
 }
