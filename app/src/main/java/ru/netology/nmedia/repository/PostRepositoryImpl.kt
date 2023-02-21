@@ -46,21 +46,25 @@ class PostRepositoryImpl @Inject constructor(
                 //получаем разницу времени между временем поста и времени
                 val timePrev = timeNow - prev!!.published
                 //получаем разницу времени между временем следующего поста
-                val timeNext = timeNow - next!!.published
+                val timeNext = timeNow - (next?.published ?: prev.published)
                 /*если дата публицации предыдущего поста меньше суток (24х60х60), а следующего поста
                 нет(то есть prev является последним), то вставляем разделитель "сегодня"*/
-                if ((timePrev < 86400) && (next == null)) {
-                    DateSeparator(0) }
+                if ((timePrev <= 86400) && (next == null)){
+                    DateSeparator(0)
+                }
                 //если дата публицации предыдущего поста больше суток (24х60х60), а следующего меньше
                 //суток, то вставляем разделитель "вчера"
-                if ((timePrev >= 86400) && (timeNext < 86400)) {
-                    DateSeparator(1) }
+                if ((timePrev >= 86400) && (timeNext < 172800)) {
+                    DateSeparator(1)
+                }
                 //если дата публицации предыдущего поста больше двух суток (2х24х60х60), а следующего меньше
-                //двух суток, то вставляем разделитель "на прошлой неделе"
-                if ((timePrev >= 172800) && (timeNext < 172800)) {
-                    DateSeparator(2) }
+                //недели, то вставляем разделитель "на прошлой неделе"
+                if ((timePrev >= 172800) && (timeNext < 604800)) {
+                    DateSeparator(2)
+                }
                 else {
-                    DateSeparator(3)
+                    null
+
                 }
             }
     }

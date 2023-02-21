@@ -10,10 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
+import ru.netology.nmedia.databinding.HeaderBinding
 import ru.netology.nmedia.databinding.SeparatorDateItemBinding
-import ru.netology.nmedia.dto.DateSeparator
-import ru.netology.nmedia.dto.FeedItem
-import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.dto.*
 import ru.netology.nmedia.view.loadCircleCrop
 
 interface OnInteractionListener {
@@ -24,6 +23,7 @@ interface OnInteractionListener {
 }
 private val typeSepararor = 0
 private val typePost = 1
+private val typeHeader = 2
 
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
@@ -31,13 +31,18 @@ class PostsAdapter(
 ) : PagingDataAdapter<FeedItem, RecyclerView.ViewHolder>(FeedItemDiffCallback()) {
     //получаем тип элемента
     override fun getItemViewType(position: Int): Int {
+        //вставляем первоначальный разделитель по дате последнего поста
+        if (position == 0) return typeHeader
         return when (getItem(position)) {
-            //если тип рекламы, то ссылка на макет с рекламой
+            //если тип разделитель, то ссылка на макет с разделителем
             is DateSeparator -> typeSepararor
             is Post -> typePost
+            is Header -> typeHeader
             null -> throw IllegalArgumentException("unknown item type")
         }
     }
+
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layoutInflater = LayoutInflater.from(parent.context)
@@ -51,6 +56,10 @@ class PostsAdapter(
                 CardPostBinding.inflate(layoutInflater, parent, false),
                 onInteractionListener
             )
+            typeHeader -> HeaderViewHolder(
+                HeaderBinding.inflate(layoutInflater, parent, false),
+
+            )
             else -> throw IllegalArgumentException("unknown view type: $viewType")
         }
     }
@@ -63,6 +72,7 @@ class PostsAdapter(
                 // Holder'a поста
                 is Post -> (holder as? PostViewHolder)?.bind(it)
                 is DateSeparator -> (holder as? DateSeparatorViewHolder)?.bind(it)
+                is Header -> (holder as? HeaderViewHolder)?.bind(it)
                 null -> throw IllegalArgumentException("unknown item type")
             }
         }
@@ -126,15 +136,34 @@ class DateSeparatorViewHolder(
     fun bind(dateSeparator: DateSeparator) {
         binding.apply {
                 //в зависимости от ID будем присваивать значение текста
-                separatorDescription.text = when (dateSeparator.id.toInt()) {
-                    0 -> "Сегодня"
-                    1 -> "Вчера"
-                    2 -> "На прошлой неделе"
-                    else -> "Давно"
-                }
+                 val textId = when (dateSeparator.id) {
+                    TimesAgo.TODAY.time -> TimesAgo.TODAY.title
+                    TimesAgo.YESTERDAY.time -> TimesAgo.YESTERDAY.title
+                    TimesAgo.LAST_WEEK.time -> TimesAgo.LAST_WEEK.title
+                    else -> TimesAgo.LONG_AGO.title
+                 }
+                 separatorDescription.setText(textId)
             }
         }
     }
+
+class HeaderViewHolder(
+    private val binding: HeaderBinding,
+) : RecyclerView.ViewHolder(binding.root) {
+
+    //заполняем Header в зависимости от даты самого свежего поста
+    fun bind(header: Header) {
+        binding.apply {
+            TODO()
+            }
+
+        }
+    }
+
+
+
+
+
 
 
 class FeedItemDiffCallback : DiffUtil.ItemCallback<FeedItem>() {
@@ -148,9 +177,7 @@ class FeedItemDiffCallback : DiffUtil.ItemCallback<FeedItem>() {
     }
 
     override fun areContentsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
-        if (oldItem is DateSeparator && newItem is DateSeparator) {
-            return oldItem.id == newItem.id
-        }
+
         return oldItem == newItem
     }
 }

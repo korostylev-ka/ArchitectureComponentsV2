@@ -9,8 +9,11 @@ sealed class FeedItem{
 //data класс для разделителей
 data class DateSeparator(
     override val id: Long,
-    //ссылка на картинку
-    //val image: String,
+) : FeedItem()
+
+//data класс для верхнего колонтитула для даты постов
+data class Header(
+    override val id: Long,
 ) : FeedItem()
 
 data class Post(

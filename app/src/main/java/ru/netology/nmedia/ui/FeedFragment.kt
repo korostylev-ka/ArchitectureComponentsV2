@@ -18,6 +18,7 @@ import ru.netology.nmedia.adapter.PagingLoadStateAdapter
 import ru.netology.nmedia.adapter.PostsAdapter
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.databinding.FragmentFeedBinding
+import ru.netology.nmedia.dto.Header
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.repository.PostRepository
 import ru.netology.nmedia.viewmodel.PostViewModel
@@ -64,6 +65,7 @@ class FeedFragment : Fragment() {
                 startActivity(shareIntent)
             }
         })
+
         //binding.list.adapter = adapter
         binding.list.adapter = adapter.withLoadStateHeaderAndFooter(
             header = PagingLoadStateAdapter(object : PagingLoadStateAdapter.OnInteractionListener {
