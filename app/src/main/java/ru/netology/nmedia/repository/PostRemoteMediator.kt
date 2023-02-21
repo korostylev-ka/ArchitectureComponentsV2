@@ -44,23 +44,15 @@ class PostRemoteMediator(
                 }
                 //скроллинг вверх(запрос на получение верхней страницы). Ключ достаем из аргумента state(достаем последний элемент)
                 LoadType.PREPEND -> {
-                    //val id = state.firstItemOrNull()?.id ?: return MediatorResult.Success(false)
-
-                    /*меняем на чтение из базы данных
+                    //меняем на чтение из базы данных
                     val id = postRemoteKeyDao.max() ?: return MediatorResult.Success(
                         //конец страницы не достигнут
                         endOfPaginationReached = false
                     )
-                    service.getAfter(id, state.config.pageSize)*/
-
-                    //убираем автоматический запрос при скролле вверх
-                    return MediatorResult.Success(true)
-
+                    service.getAfter(id, state.config.pageSize)
                 }
                 //скроллинг вниз. Запрос на получение нижней страницы
                 LoadType.APPEND -> {
-                    /* Чтение первого поста из оперативной памяти
-                    val id = state.lastItemOrNull()?.id ?: return MediatorResult.Success(false) //конец страницы не достигнут */
                     //меняем на чтение из базы данных
                     val id = postRemoteKeyDao.min() ?: return MediatorResult.Success(
                         endOfPaginationReached = false

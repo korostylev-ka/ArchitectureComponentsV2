@@ -10,10 +10,7 @@ import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.dao.PostDao
 import ru.netology.nmedia.dao.PostRemoteKeyDao
 import ru.netology.nmedia.db.AppDb
-import ru.netology.nmedia.dto.Attachment
-import ru.netology.nmedia.dto.Media
-import ru.netology.nmedia.dto.MediaUpload
-import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.dto.*
 import ru.netology.nmedia.entity.PostEntity
 import ru.netology.nmedia.entity.toEntity
 import ru.netology.nmedia.enumeration.AttachmentType
@@ -22,8 +19,10 @@ import ru.netology.nmedia.error.AppError
 import ru.netology.nmedia.error.NetworkError
 import ru.netology.nmedia.error.UnknownError
 import java.io.IOException
+import java.sql.Timestamp
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 @Singleton
 class PostRepositoryImpl @Inject constructor(
@@ -34,14 +33,40 @@ class PostRepositoryImpl @Inject constructor(
 ) : PostRepository {
 
     @OptIn(ExperimentalPagingApi::class)
-    override val data: Flow<PagingData<Post>> = Pager(
-        config = PagingConfig(pageSize = 25),
+    override val data: Flow<PagingData<FeedItem>> = Pager(
+        config = PagingConfig(pageSize = 5),
         remoteMediator = PostRemoteMediator(apiService, appDb, postDao, postRemoteKeyDao),
-        //создаем pagingSource в Dao
         pagingSourceFactory = postDao::pagingSource,
-        //чтобы на "выходе" был Post, т.к приложение использует Post а не PostEntity
     ).flow.map { pagingData ->
         pagingData.map(PostEntity::toDto)
+            //вставка разделителя
+            .insertSeparators { prev, next ->
+                //получаем текущее значение времени и даты в формате unix
+                val timeNow = Timestamp(System.currentTimeMillis()).time/1000
+                //получаем разницу времени между временем поста и времени
+                val timePrev = timeNow - prev!!.published
+                //получаем разницу времени между временем следующего поста
+                val timeNext = timeNow - (next?.published ?: prev.published)
+                /*если дата публицации предыдущего поста меньше суток (24х60х60), а следующего поста
+                нет(то есть prev является последним), то вставляем разделитель "сегодня"*/
+                if ((timePrev <= 86400) && (next == null)){
+                    DateSeparator(0)
+                }
+                //если дата публицации предыдущего поста больше суток (24х60х60), а следующего меньше
+                //суток, то вставляем разделитель "вчера"
+                if ((timePrev >= 86400) && (timeNext < 172800)) {
+                    DateSeparator(1)
+                }
+                //если дата публицации предыдущего поста больше двух суток (2х24х60х60), а следующего меньше
+                //недели, то вставляем разделитель "на прошлой неделе"
+                if ((timePrev >= 172800) && (timeNext < 604800)) {
+                    DateSeparator(2)
+                }
+                else {
+                    null
+
+                }
+            }
     }
 
     override suspend fun getAll() {
